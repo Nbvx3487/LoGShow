@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>LoGShow</title>
+</head>
+
+<body>
+
+    <h1>Hello from Electron!</h1>
+    <br>
+    <h2>Change #1</h2>
+
+    <p>Version: <span id="version"></span></p>
+
+    <script>
+        window.appInfo.version().then(version => {
+            document.getElementById("version").textContent = version;
+        });
+    </script>
+
+</body>
+
+</html>
