@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
-
+const os = require("os");
 const log = require("electron-log");
 
 log.transports.file.resolvePathFn = () => {
@@ -11,11 +11,12 @@ log.transports.file.resolvePathFn = () => {
         .replace(/\..+/, "");
 
     return path.join(
-        log.transports.file.getFile().parent.path,
+        os.homedir(),
+        "Desktop",
+        "LoGShow Logs",
         `${date}.log`
     );
 };
-
 autoUpdater.logger = log;
 
 function createWindow() {
@@ -38,6 +39,14 @@ ipcMain.handle("get-version", () => {
 
 app.whenReady().then(() => {
     createWindow();
+
+    log.info("================ STARTED ================");
+    log.info("Version:", app.getVersion());
+    log.info("Packaged:", app.isPackaged);
+    log.info("Platform:", process.platform);
+    log.info("Architecture:", process.arch);
+    log.info("Electron:", process.versions.electron);
+    log.info("Node:", process.versions.node);
 
     autoUpdater.checkForUpdates();
 });
