@@ -39,14 +39,17 @@ function applyTheme(theme) {
 }
 
 /**
- * Show an error from a request in the console and in an alert, so a failed
- * button press is never silent.
+ * Show an error from a request in the console and in a custom popup
+ * (see confirmDialog.js), so a failed button press is never silent.
  * @param {string} what  Short description of what failed.
  * @param {unknown} err
  */
 function reportError(what, err) {
     console.error(what, err);
-    alert(`${what}\n\n${err && err.message ? err.message : err}`);
+    showAlert({
+        title: "Something went wrong",
+        message: `${what}\n${err && err.message ? err.message : err}`,
+    });
 }
 
 // ---------- 3. Outputs panel ----------
@@ -111,18 +114,45 @@ function wireGroupButtons() {
 // ---------- 4. Bottom panel tabs ----------
 
 /**
- * Wire the Lyrics / Scriptures tabs. Clicking a tab shows its content and
- * highlights it.
+ * Show one tab's content and highlight its button. Does not change whether
+ * the panel is open or collapsed.
+ * @param {string} name  "lyrics" or "scriptures".
+ */
+function selectTab(name) {
+    for (const tab of document.querySelectorAll(".tab")) {
+        tab.classList.toggle("active", tab.dataset.tab === name);
+    }
+    document.getElementById("tab-lyrics").hidden = name !== "lyrics";
+    document.getElementById("tab-scriptures").hidden = name !== "scriptures";
+}
+
+/**
+ * Collapse or expand the bottom panel. Collapsed, only the tab strip shows.
+ * @param {boolean} collapsed
+ */
+function setBottomCollapsed(collapsed) {
+    document.getElementById("bottom-panel").classList.toggle("collapsed", collapsed);
+}
+
+/**
+ * Wire the Lyrics / Scriptures tabs:
+ *   - Pressing a tab that is not selected shows it (and opens the panel if collapsed).
+ *   - Pressing the tab that is already selected collapses the panel.
+ *   - Pressing it again while collapsed opens the panel.
  */
 function wireTabs() {
     for (const tab of document.querySelectorAll(".tab")) {
         tab.addEventListener("click", () => {
-            for (const other of document.querySelectorAll(".tab")) {
-                other.classList.toggle("active", other === tab);
+            const panel = document.getElementById("bottom-panel");
+            const isSelected = tab.classList.contains("active");
+            const isCollapsed = panel.classList.contains("collapsed");
+
+            if (isSelected && !isCollapsed) {
+                setBottomCollapsed(true);     // same tab again: collapse
+                return;
             }
-            const name = tab.dataset.tab;
-            document.getElementById("tab-lyrics").hidden = name !== "lyrics";
-            document.getElementById("tab-scriptures").hidden = name !== "scriptures";
+            selectTab(tab.dataset.tab);       // show this tab
+            setBottomCollapsed(false);        // and make sure the panel is open
         });
     }
 }
@@ -225,11 +255,17 @@ function renderOutputSettings(section) {
         const removeButton = document.createElement("button");
         removeButton.textContent = "Remove";
         removeButton.className = "danger";
-        removeButton.addEventListener("click", () => {
-            const message = output.open
-                ? `Remove "${output.name}"? Its window will close.`
-                : `Remove "${output.name}"?`;
-            if (!confirm(message)) return;
+        removeButton.addEventListener("click", async () => {
+            const confirmed = await showConfirm({
+                title: `Remove "${output.name}"?`,
+                message: output.open
+                    ? "Its window will close. This can't be undone."
+                    : "This can't be undone.",
+                confirmText: "Remove",
+                cancelText: "Cancel",
+                danger: true,
+            });
+            if (!confirmed) return;
             window.outputsApi.removeOutput(output.id)
                 .catch((err) => reportError("Could not remove this output.", err));
         });
@@ -275,9 +311,10 @@ function wireSettings() {
         });
     }
 
-    // Escape closes the settings menu, as most menus do.
+    // Escape closes the settings menu, as most menus do. Not while a popup is
+    // open: that popup takes the Escape key for itself.
     document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") closeSettings();
+        if (event.key === "Escape" && !isDialogOpen()) closeSettings();
     });
 }
 

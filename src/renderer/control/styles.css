@@ -106,33 +106,63 @@ button:hover { border-color: var(--accent); }
 /* ---------- Bottom panel: Lyrics / Scriptures ---------- */
 
 /*
-  The wrapper leaves room above the panel. The settings button sits in that
-  room on the right, hovering just above the panel.
+  #bottom-wrap is the container. The gear button is positioned so it hangs
+  over the top edge of the panel, on the right.
 */
 #bottom-wrap {
     position: relative;
-    padding-top: 44px;
 }
 
+/* Round gear button, hanging half above the bottom panel's top edge. */
 #settings-button {
     position: absolute;
-    top: 8px;
-    right: 16px;
+    top: -20px;            /* half of the 40px button sits above the panel */
+    right: 20px;
+    z-index: 2;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
+.gear-icon {
+    width: 22px;
+    height: 22px;
+    display: block;
+}
+
+/* In light theme the gear is light grey, so invert it to dark. */
+:root[data-theme="light"] .gear-icon { filter: invert(1); }
+
+/* Whole bottom panel. Its height is 200px when open, and only the tab strip
+   shows when collapsed (see #bottom-panel.collapsed below). */
 #bottom-panel {
     height: 200px;
-    background: var(--panel);
-    border-top: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    padding: 12px 16px;
+    border-top: 1px solid var(--border);
 }
 
-#bottom-panel .tabs {
+#bottom-panel.collapsed {
+    height: auto;
+}
+
+/* Tab strip. A slightly different colour from the content below it, so the
+   two read as separate parts. */
+#bottom-tabs {
     display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 4px;
+    padding: 8px 16px 0;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+}
+
+#bottom-panel .tab {
+    border-radius: 6px 6px 0 0;
+    border-bottom: none;
 }
 
 #bottom-panel .tab.active {
@@ -140,10 +170,73 @@ button:hover { border-color: var(--accent); }
     color: var(--accent);
 }
 
+/* Content area under the tabs. Hidden when the panel is collapsed. */
+#bottom-content {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    padding: 12px 16px;
+    background: var(--panel);
+}
+
+#bottom-panel.collapsed #bottom-content {
+    display: none;
+}
+
 .tab-content {
     flex: 1;
     overflow-y: auto;
     color: var(--muted);
+}
+
+/* ---------- Custom confirm / alert dialog ---------- */
+
+.dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+
+.dialog {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    min-width: 320px;
+    max-width: 440px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.dialog h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+}
+
+.dialog p {
+    margin: 0 0 20px;
+    color: var(--muted);
+    white-space: pre-line;
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.dialog-actions button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.dialog-actions button.primary.danger-action {
+    background: var(--danger);
+    border-color: var(--danger);
 }
 
 /* ---------- Full-screen settings ---------- */

@@ -4,9 +4,11 @@
 
   Layout, top to bottom:
     #top          Main area on the left (#stage), Outputs panel on the right (#outputs-panel).
-    #bottom-wrap  Bottom panel with Lyrics / Scriptures tabs. The Settings button
-                  (#settings-button) sits just above its right edge.
-    #settings-overlay  Full-screen settings, hidden until Settings is pressed.
+    #bottom-wrap  Bottom panel with Lyrics / Scriptures tabs. The gear button
+                  (#settings-button) hovers over the panel's top edge on the right.
+                  Clicking the active tab collapses the panel.
+    #settings-overlay  Full-screen settings, hidden until the gear is pressed.
+    confirmDialog.js  Custom confirm and alert popups (replace the system ones).
 -->
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -39,15 +41,19 @@
         </div>
 
         <div id="bottom-wrap">
-            <button id="settings-button" title="Open settings">Settings</button>
+            <button id="settings-button" title="Settings">
+                <img src="icons/gear.png" alt="Settings" class="gear-icon">
+            </button>
 
             <section id="bottom-panel">
-                <div class="tabs">
+                <div id="bottom-tabs">
                     <button class="tab active" data-tab="lyrics">Lyrics</button>
                     <button class="tab" data-tab="scriptures">Scriptures</button>
                 </div>
-                <div id="tab-lyrics" class="tab-content">Lyrics will appear here.</div>
-                <div id="tab-scriptures" class="tab-content" hidden>Scriptures will appear here.</div>
+                <div id="bottom-content">
+                    <div id="tab-lyrics" class="tab-content">Lyrics will appear here.</div>
+                    <div id="tab-scriptures" class="tab-content" hidden>Scriptures will appear here.</div>
+                </div>
             </section>
         </div>
 
@@ -67,6 +73,7 @@
         </div>
     </div>
 
+    <script src="confirmDialog.js"></script>
     <script src="control.js"></script>
 </body>
 
