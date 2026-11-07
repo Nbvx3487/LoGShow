@@ -2,11 +2,12 @@
   "name": "logshow",
   "version": "1.0.3",
   "description": "",
-  "main": "main.js",
+  "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --publish never",
-    "release": "electron-builder --publish always"
+    "release": "electron-builder --publish always",
+    "test": "node --test tests/storage.test.js"
   },
   "keywords": [],
   "author": "",

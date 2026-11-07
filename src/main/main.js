@@ -1,3 +1,11 @@
+/**
+ * main.js — entry point of the Electron main process.
+ *
+ * Starts the app, creates the control window, and connects the modules in
+ * src/main/. Start reading the app here. Function-level details live in each
+ * module. Logs are written to Desktop/LoGShow Logs.
+ */
+
 const { app, BrowserWindow, ipcMain } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
@@ -24,13 +32,13 @@ function createWindow() {
         width: 800,
         height: 600,
         webPreferences: {
-            preload: path.join(__dirname, "preload.js"),
+            preload: path.join(__dirname, "..", "preload", "preload.js"),
             contextIsolation: true,
             nodeIntegration: false
         }
     });
 
-    window.loadFile("index.html");
+    window.loadFile(path.join(__dirname, "..", "renderer", "control", "index.html"));
 }
 
 ipcMain.handle("get-version", () => {
