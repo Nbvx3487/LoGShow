@@ -1,14 +1,32 @@
 <!--
-  index.html — the control window's page. The look is in styles.css and the
-  behaviour in control.js, both in this folder.
+  index.html — the control window's page: WHERE EACH PART OF THE LAYOUT IS.
+
+  The sizes (panel widths and heights, button sizes) are in styles.css, in the
+  LAYOUT block at the top. Colours are in the theme blocks in the same file.
+  The behaviour is in control.js; resizing is in resizer.js.
 
   Layout, top to bottom:
-    #top          Main area on the left (#stage), Outputs panel on the right (#outputs-panel).
-    #bottom-wrap  Bottom panel with Lyrics / Scriptures tabs. The gear button
-                  (#settings-button) hovers over the panel's top edge on the right.
-                  Clicking the active tab collapses the panel.
-    #settings-overlay  Full-screen settings, hidden until the gear is pressed.
-    confirmDialog.js  Custom confirm and alert popups (replace the system ones).
+
+    #app
+      #top                       the upper area (fills the window)
+        #stage                   main area on the left (welcome text for now)
+        #outputs-resize          drag handle between main area and Outputs panel
+        #outputs-panel           Outputs panel on the right (Show all, End all, each output)
+      #bottom-wrap               everything at the bottom
+        #bottom-resize           drag handle on the top edge of the bottom panel
+        #bottom-panel            the bottom panel (resizable height, collapsible)
+          #settings-button       the gear, a rounded square over the panel's right side
+          #bottom-tabs           the tab strip: Lyrics and Scriptures (click empty strip to collapse)
+          #bottom-content        the content under the tabs (hidden when collapsed)
+
+    #settings-overlay            full-screen Settings, hidden until the gear is pressed
+      #settings-header           title and Close button
+      #settings-body
+        #settings-content        the section being shown, on the left
+        #settings-resize         drag handle between content and section list
+        #settings-nav            section list, on the right
+
+    confirmDialog.js             custom confirm and alert popups
 -->
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -24,11 +42,14 @@
 
     <div id="app">
 
+        <!-- The upper area: main area and Outputs panel side by side. -->
         <div id="top">
             <main id="stage">
                 <h1>Welcome to LoGShow!</h1>
                 <p id="version"></p>
             </main>
+
+            <div id="outputs-resize" class="resize-handle vertical" data-resize="outputs" title="Drag to resize"></div>
 
             <aside id="outputs-panel">
                 <h2>Outputs</h2>
@@ -40,16 +61,20 @@
             </aside>
         </div>
 
+        <!-- The bottom area: drag handle, then the bottom panel. -->
         <div id="bottom-wrap">
-            <button id="settings-button" title="Settings">
-                <img src="icons/gear.png" alt="Settings" class="gear-icon">
-            </button>
+            <div id="bottom-resize" class="resize-handle horizontal" data-resize="bottom" title="Drag to resize"></div>
 
             <section id="bottom-panel">
+                <button id="settings-button" title="Settings">
+                    <img src="icons/gear.png" alt="Settings" class="gear-icon">
+                </button>
+
                 <div id="bottom-tabs">
                     <button class="tab active" data-tab="lyrics">Lyrics</button>
                     <button class="tab" data-tab="scriptures">Scriptures</button>
                 </div>
+
                 <div id="bottom-content">
                     <div id="tab-lyrics" class="tab-content">Lyrics will appear here.</div>
                     <div id="tab-scriptures" class="tab-content" hidden>Scriptures will appear here.</div>
@@ -59,6 +84,7 @@
 
     </div>
 
+    <!-- The full-screen settings menu. Hidden until the gear is pressed. -->
     <div id="settings-overlay" hidden>
         <header id="settings-header">
             <h2>Settings</h2>
@@ -66,6 +92,7 @@
         </header>
         <div id="settings-body">
             <div id="settings-content"></div>
+            <div id="settings-resize" class="resize-handle vertical" data-resize="settings-nav" title="Drag to resize"></div>
             <nav id="settings-nav">
                 <button class="section-button active" data-section="general">General</button>
                 <button class="section-button" data-section="outputs">Outputs settings</button>
@@ -74,6 +101,7 @@
     </div>
 
     <script src="confirmDialog.js"></script>
+    <script src="resizer.js"></script>
     <script src="control.js"></script>
 </body>
 

@@ -1,22 +1,49 @@
 /*
-  styles.css — look of the control window.
+  styles.css — look and layout of the control window.
 
-  Colours are defined as variables (--bg, --text, ...) for each theme.
-  To change a colour, edit the variables under [data-theme="dark"] or
-  [data-theme="light"]. The theme is set by control.js on <html data-theme>.
+  HOW TO ADJUST THE LAYOUT
+    - Sizes you may want to change are in the LAYOUT block just below.
+      Edit a value there and reload the window (Ctrl+R in DevTools mode, or restart the app).
+    - Colours are in the two theme blocks (dark and light). Edit the values there.
+    - Panel sizes set by dragging the handles are saved on this computer and
+      override the values in the LAYOUT block until you drag again.
+      (Saved as "layout:<name>" in localStorage; see resizer.js.)
+
+  Which element is which: see index.html. Each section there has a comment.
 */
+
+/* ---------- LAYOUT: sizes you can change ---------- */
+
+:root {
+    --outputs-width: 300px;          /* right-hand Outputs panel (resizable) */
+    --settings-nav-width: 220px;     /* section list in Settings (resizable) */
+    --bottom-height: 200px;          /* bottom Lyrics / Scriptures panel (resizable) */
+    --tab-strip-height: 40px;        /* height of the tab strip (Lyrics, Scriptures) */
+    --tab-min-width: 150px;          /* width of each tab, the wider the more room */
+    --gear-size: 36px;               /* the Settings button, a rounded square */
+    --gear-offset-expanded: 52px;    /* gear distance from top of panel when open */
+    --gear-offset-collapsed: 2px;    /* gear distance from top of panel when collapsed */
+    --gear-right: 16px;              /* gear distance from the right edge of the panel */
+    --stage-padding: 24px;           /* space around the welcome text */
+    --panel-padding: 16px;           /* space inside side panels */
+    --handle-size: 6px;              /* thickness of the drag handles between panels */
+}
+
+/* ---------- COLOURS: dark theme (default) ---------- */
 
 :root[data-theme="dark"] {
     --bg: #121212;          /* page background */
-    --panel: #1e1e1e;       /* side and bottom panels */
-    --panel-2: #262626;     /* rows inside panels */
+    --panel: #1e1e1e;       /* panel bodies */
+    --panel-2: #262626;     /* tab strip, buttons, rows */
     --border: #333;
     --text: #eaeaea;
     --muted: #9a9a9a;
-    --accent: #3b82f6;      /* active tabs, primary buttons */
+    --accent: #3b82f6;      /* active tab, primary buttons */
     --ok: #2ecc71;          /* "Open" status */
     --danger: #e74c3c;      /* remove buttons */
 }
+
+/* ---------- COLOURS: light theme ---------- */
 
 :root[data-theme="light"] {
     --bg: #f4f4f4;
@@ -52,6 +79,10 @@ button, input, select {
 
 button:hover { border-color: var(--accent); }
 
+/* While dragging a handle, keep the resize cursor everywhere. */
+body[data-resizing="x"] { cursor: col-resize; user-select: none; }
+body[data-resizing="y"] { cursor: row-resize; user-select: none; }
+
 /* ---------- Layout: top area above the bottom panel ---------- */
 
 #app {
@@ -69,15 +100,28 @@ button:hover { border-color: var(--accent); }
 /* Main area: welcome text, later the song and verse controls. */
 #stage {
     flex: 1;
-    padding: 24px;
+    min-width: 0;
+    padding: var(--stage-padding);
 }
+
+/* Drag handles between panels. Thin, and they light up when hovered. */
+.resize-handle {
+    flex: none;
+    background: transparent;
+}
+
+.resize-handle.vertical { width: var(--handle-size); cursor: col-resize; }
+.resize-handle.horizontal { height: var(--handle-size); cursor: row-resize; }
+
+.resize-handle:hover,
+.resize-handle.dragging { background: var(--accent); }
 
 /* Right side: outputs panel. */
 #outputs-panel {
-    width: 300px;
-    padding: 16px;
+    width: var(--outputs-width);
+    flex: none;
+    padding: var(--panel-padding);
     background: var(--panel);
-    border-left: 1px solid var(--border);
     overflow-y: auto;
 }
 
@@ -105,68 +149,56 @@ button:hover { border-color: var(--accent); }
 
 /* ---------- Bottom panel: Lyrics / Scriptures ---------- */
 
-/*
-  #bottom-wrap is the container. The gear button is positioned so it hangs
-  over the top edge of the panel, on the right.
-*/
+/* Wrapper: holds the drag handle above the panel and the panel itself. */
 #bottom-wrap {
-    position: relative;
-}
-
-/* Round gear button, hanging half above the bottom panel's top edge. */
-#settings-button {
-    position: absolute;
-    top: -20px;            /* half of the 40px button sits above the panel */
-    right: 20px;
-    z-index: 2;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-}
-
-.gear-icon {
-    width: 22px;
-    height: 22px;
-    display: block;
-}
-
-/* In light theme the gear is light grey, so invert it to dark. */
-:root[data-theme="light"] .gear-icon { filter: invert(1); }
-
-/* Whole bottom panel. Its height is 200px when open, and only the tab strip
-   shows when collapsed (see #bottom-panel.collapsed below). */
-#bottom-panel {
-    height: 200px;
     display: flex;
     flex-direction: column;
-    border-top: 1px solid var(--border);
+    flex: none;
+}
+
+/*
+  The whole bottom panel. Its height is --bottom-height when open. When
+  collapsed it shrinks to just the tab strip (height: auto).
+  position: relative lets the gear button sit inside it.
+*/
+#bottom-panel {
+    position: relative;
+    height: var(--bottom-height);
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
 }
 
 #bottom-panel.collapsed {
     height: auto;
 }
 
-/* Tab strip. A slightly different colour from the content below it, so the
-   two read as separate parts. */
+/* Tab strip. Full width of the panel, flush, no borders, no gaps.
+   Slightly darker than the content below it so the two read as separate parts. */
 #bottom-tabs {
+    flex: none;
     display: flex;
-    gap: 4px;
-    padding: 8px 16px 0;
+    gap: 0;
+    height: var(--tab-strip-height);
     background: var(--panel-2);
-    border-bottom: 1px solid var(--border);
 }
 
+/* Each tab fills the strip's full height. No borders, no gaps between tabs. */
 #bottom-panel .tab {
-    border-radius: 6px 6px 0 0;
-    border-bottom: none;
+    height: 100%;
+    min-width: var(--tab-min-width);
+    padding: 0 28px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: var(--muted);
 }
 
+#bottom-panel .tab:hover { color: var(--text); }
+
+/* The selected tab takes the content's colour, so it looks joined to the content. */
 #bottom-panel .tab.active {
-    border-color: var(--accent);
+    background: var(--panel);
     color: var(--accent);
 }
 
@@ -176,7 +208,6 @@ button:hover { border-color: var(--accent); }
     display: flex;
     min-height: 0;
     padding: 12px 16px;
-    background: var(--panel);
 }
 
 #bottom-panel.collapsed #bottom-content {
@@ -188,6 +219,38 @@ button:hover { border-color: var(--accent); }
     overflow-y: auto;
     color: var(--muted);
 }
+
+/*
+  Settings button: a rounded square that hovers over the bottom panel on the
+  right. It sits inside the panel (not above it). Expanded, it is in the
+  content area; collapsed, it moves up into the tab strip so it stays reachable.
+*/
+#settings-button {
+    position: absolute;
+    top: var(--gear-offset-expanded);
+    right: var(--gear-right);
+    z-index: 2;
+    width: var(--gear-size);
+    height: var(--gear-size);
+    padding: 0;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+#bottom-panel.collapsed #settings-button {
+    top: var(--gear-offset-collapsed);
+}
+
+.gear-icon {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+/* The gear icon has dark lines. On the dark theme, flip them to light. */
+:root[data-theme="dark"] .gear-icon { filter: invert(1); }
 
 /* ---------- Custom confirm / alert dialog ---------- */
 
@@ -272,15 +335,16 @@ button:hover { border-color: var(--accent); }
 /* Settings content, on the left. */
 #settings-content {
     flex: 1;
+    min-width: 0;
     padding: 24px;
     overflow-y: auto;
 }
 
-/* Section list, on the right. */
+/* Section list, on the right. Its width is --settings-nav-width (resizable). */
 #settings-nav {
-    width: 220px;
-    padding: 16px;
-    border-left: 1px solid var(--border);
+    width: var(--settings-nav-width);
+    flex: none;
+    padding: var(--panel-padding);
     background: var(--panel);
     display: flex;
     flex-direction: column;

@@ -132,18 +132,23 @@ function selectTab(name) {
  */
 function setBottomCollapsed(collapsed) {
     document.getElementById("bottom-panel").classList.toggle("collapsed", collapsed);
+    // A collapsed panel has no height to drag, so hide its handle too.
+    document.getElementById("bottom-resize").hidden = collapsed;
 }
 
 /**
- * Wire the Lyrics / Scriptures tabs:
+ * Wire the Lyrics / Scriptures tabs and the tab strip:
  *   - Pressing a tab that is not selected shows it (and opens the panel if collapsed).
  *   - Pressing the tab that is already selected collapses the panel.
  *   - Pressing it again while collapsed opens the panel.
+ *   - Pressing the empty space of the strip (not a tab) toggles collapsed/open.
+ *     Only a press directly on the strip counts, so tab presses are not doubled.
  */
 function wireTabs() {
+    const panel = document.getElementById("bottom-panel");
+
     for (const tab of document.querySelectorAll(".tab")) {
         tab.addEventListener("click", () => {
-            const panel = document.getElementById("bottom-panel");
             const isSelected = tab.classList.contains("active");
             const isCollapsed = panel.classList.contains("collapsed");
 
@@ -155,6 +160,13 @@ function wireTabs() {
             setBottomCollapsed(false);        // and make sure the panel is open
         });
     }
+
+    // Empty space of the strip: toggle. event.target is the strip itself only
+    // when the press missed the tabs and the gear button.
+    document.getElementById("bottom-tabs").addEventListener("click", (event) => {
+        if (event.target !== event.currentTarget) return;
+        setBottomCollapsed(!panel.classList.contains("collapsed"));
+    });
 }
 
 // ---------- 5. Settings menu ----------
@@ -227,6 +239,21 @@ function renderGeneralSettings(section) {
     row.appendChild(label);
     row.appendChild(select);
     section.appendChild(row);
+
+    // Put every panel back to its default size (see resizer.js).
+    const resetRow = document.createElement("div");
+    resetRow.className = "setting-row";
+
+    const resetLabel = document.createElement("label");
+    resetLabel.textContent = "Panel sizes";
+
+    const resetButton = document.createElement("button");
+    resetButton.textContent = "Reset panel sizes";
+    resetButton.addEventListener("click", () => resetLayout());
+
+    resetRow.appendChild(resetLabel);
+    resetRow.appendChild(resetButton);
+    section.appendChild(resetRow);
 }
 
 /**
