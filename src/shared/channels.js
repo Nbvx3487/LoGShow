@@ -9,14 +9,35 @@
  */
 
 module.exports = {
-    /** Renderer asks: which outputs exist and which are open? */
+    // --- Outputs ---
+    /** Renderer asks: list outputs and whether each is open. */
     GET_OUTPUTS: "outputs:get",
     /** Renderer asks: open one output window. Argument: output id. */
     START_OUTPUT: "outputs:start",
-    /** Renderer asks: open every output window that is not open yet. */
+    /** Renderer asks: close one output window. Argument: output id. */
+    END_OUTPUT: "outputs:end",
+    /** Renderer asks: open every output window that is closed. */
     SHOW_ALL_OUTPUTS: "outputs:show-all",
-    /** Main tells every window: the open/closed status changed. */
+    /** Renderer asks: close every open output window. */
+    END_ALL_OUTPUTS: "outputs:end-all",
+    /** Renderer asks: add an output. Argument: name. */
+    ADD_OUTPUT: "outputs:add",
+    /** Renderer asks: rename an output. Arguments: id, name. */
+    RENAME_OUTPUT: "outputs:rename",
+    /** Renderer asks: remove an output (closes its window first). Argument: id. */
+    REMOVE_OUTPUT: "outputs:remove",
+    /** Main tells every window: the output list or open/closed status changed. */
     OUTPUTS_CHANGED: "outputs:changed",
+
+    // --- Settings ---
+    /** Renderer asks: read the settings (theme, etc.). */
+    GET_SETTINGS: "settings:get",
+    /** Renderer asks: change some settings. Argument: partial settings object. */
+    SET_SETTINGS: "settings:set",
+    /** Main tells every window: the settings changed. */
+    SETTINGS_CHANGED: "settings:changed",
+
+    // --- App ---
     /** Renderer asks: what version is the app? */
     GET_VERSION: "get-version",
 };

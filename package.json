@@ -7,7 +7,7 @@
     "start": "electron .",
     "dist": "electron-builder --publish never",
     "release": "electron-builder --publish always",
-    "test": "node --test tests/storage.test.js tests/state.test.js tests/outputManager.test.js"
+    "test": "node --test tests/storage.test.js tests/state.test.js tests/outputManager.test.js tests/settingsStore.test.js"
   },
   "keywords": [],
   "author": "",

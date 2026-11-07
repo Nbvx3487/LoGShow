@@ -117,3 +117,76 @@ test("onChange is reported when a window opens", () => {
     assert.equal(changes.length, 1);
     assert.equal(changes[0][1].open, true);
 });
+
+// --- Added with End show / End all / add / rename / remove ---
+
+test("endShow closes the window and marks the output closed", () => {
+    const { manager, created, changes } = setup();
+    manager.start("a");
+    manager.endShow("a");
+    assert.equal(created[0].destroyed, true);
+    assert.equal(manager.getStatus()[0].open, false);
+    assert.equal(changes.at(-1)[0].open, false);
+});
+
+test("endShow on a closed output does nothing", () => {
+    const { manager, created } = setup();
+    assert.doesNotThrow(() => manager.endShow("a"));
+    assert.equal(created.length, 0);
+});
+
+test("endAll closes every open output", () => {
+    const { manager } = setup();
+    manager.showAll();
+    manager.endAll();
+    assert.deepEqual(manager.getStatus().map((s) => s.open), [false, false]);
+});
+
+test("addOutput adds a named output with a new id and saves the list", () => {
+    const saved = [];
+    const created = [];
+    const manager = createOutputManager({
+        outputs: OUTPUTS,
+        openWindow: () => { const w = fakeWindow(); created.push(w); return w; },
+        onListChange: (list) => saved.push(list),
+    });
+    const id = manager.addOutput("  Projector  ");
+    assert.equal(id, "output-3");
+    assert.deepEqual(manager.getOutputs().at(-1), { id: "output-3", name: "Projector" });
+    assert.equal(saved.length, 1);
+    assert.equal(saved[0].length, 3);
+});
+
+test("addOutput rejects an empty name", () => {
+    const { manager } = setup();
+    assert.throws(() => manager.addOutput("   "), /cannot be empty/);
+    assert.equal(manager.getOutputs().length, 2);
+});
+
+test("renameOutput changes the name but keeps the id", () => {
+    const { manager } = setup();
+    manager.renameOutput("a", "Front screen");
+    assert.deepEqual(manager.getOutputs()[0], { id: "a", name: "Front screen" });
+});
+
+test("removeOutput closes its window and drops it from the list", () => {
+    const saved = [];
+    const created = [];
+    const manager = createOutputManager({
+        outputs: OUTPUTS,
+        openWindow: (o) => { const w = fakeWindow(); w.output = o; created.push(w); return w; },
+        onListChange: (list) => saved.push(list),
+    });
+    manager.start("a");
+    manager.removeOutput("a");
+    assert.equal(created[0].destroyed, true);
+    assert.deepEqual(manager.getOutputs(), [{ id: "b", name: "Output B" }]);
+    assert.equal(saved.at(-1).length, 1);
+});
+
+test("the manager keeps its own copy of the outputs it was given", () => {
+    const input = [{ id: "x", name: "X" }];
+    const manager = createOutputManager({ outputs: input, openWindow: fakeWindow });
+    manager.renameOutput("x", "Changed");
+    assert.equal(input[0].name, "X", "caller's array was not modified");
+});

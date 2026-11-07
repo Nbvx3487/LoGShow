@@ -1,28 +1,70 @@
 /**
  * control.js — behaviour of the control window.
  *
- * Responsibilities:
- *   - Show the app version in the main area.
- *   - Draw the Outputs panel: one row per output, with its open/closed status
- *     and a "Start show" button.
- *   - Send button presses to the main process through window.outputsApi
- *     (defined in src/preload/preload.js).
- *   - Redraw the panel whenever an output window opens or closes.
+ * Sections, in order:
+ *   1. State       — the last known outputs and settings.
+ *   2. Theme       — applies the chosen theme to <html data-theme>.
+ *   3. Outputs     — the Outputs panel (right side) and its buttons.
+ *   4. Bottom      — the Lyrics / Scriptures tabs.
+ *   5. Settings    — the full-screen settings menu and its sections.
+ *   6. Start-up    — connects everything when the page loads.
  *
- * Debugging tip: open the DevTools (View > Toggle Developer Tools) to see
- * errors from this file.
+ * Every button sends its request through window.outputsApi or window.settingsApi
+ * (defined in src/preload/preload.js). Those return the new state, and the
+ * matching onChange listener redraws the page.
+ *
+ * Debugging: open DevTools (View > Toggle Developer Tools) and look at the
+ * Console for errors from these handlers.
  */
 
+// ---------- 1. State ----------
+
+/** Last outputs list received from the main process: [{ id, name, open }]. */
+let outputStatuses = [];
+
+/** Last settings received from the main process: { theme, ... }. */
+let settings = {};
+
+/** Which settings section is showing: "general" or "outputs". */
+let activeSection = "general";
+
+// ---------- 2. Theme ----------
+
 /**
- * Draw the outputs list from a list of statuses.
- * The list is rebuilt from scratch each time, which keeps it simple and
- * always in sync with the main process.
- *
+ * Apply a theme by setting data-theme on <html>. The colours come from styles.css.
+ * @param {string} theme  "dark" or "light".
+ */
+function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+}
+
+/**
+ * Show an error from a request in the console and in an alert, so a failed
+ * button press is never silent.
+ * @param {string} what  Short description of what failed.
+ * @param {unknown} err
+ */
+function reportError(what, err) {
+    console.error(what, err);
+    alert(`${what}\n\n${err && err.message ? err.message : err}`);
+}
+
+// ---------- 3. Outputs panel ----------
+
+/**
+ * Redraw the Outputs panel rows. Each row has a Start show button when the
+ * output is closed, and an End show button when it is open.
  * @param {{ id: string, name: string, open: boolean }[]} statuses
  */
 function renderOutputs(statuses) {
+    outputStatuses = statuses;
     const list = document.getElementById("output-list");
-    list.textContent = ""; // remove the old rows
+    list.textContent = "";
+
+    if (statuses.length === 0) {
+        list.textContent = "No outputs. Add one in Settings > Outputs settings.";
+        return;
+    }
 
     for (const output of statuses) {
         const row = document.createElement("div");
@@ -36,44 +78,240 @@ function renderOutputs(statuses) {
         status.textContent = output.open ? "Open" : "Closed";
 
         const button = document.createElement("button");
-        button.textContent = "Start show";
+        button.textContent = output.open ? "End show" : "Start show";
         button.addEventListener("click", () => {
-            // Asks the main process to open this output. The reply is the new
-            // status list; it's ignored here because onChange also delivers it.
-            window.outputsApi.startOutput(output.id).catch((err) => {
-                console.error("Could not start output:", err);
-            });
+            const request = output.open
+                ? window.outputsApi.endOutput(output.id)
+                : window.outputsApi.startOutput(output.id);
+            request.catch((err) => reportError("Could not change this output.", err));
         });
 
-        const left = document.createElement("div");
-        left.appendChild(label);
-        left.appendChild(status);
+        const text = document.createElement("div");
+        text.appendChild(label);
+        text.appendChild(status);
 
-        row.appendChild(left);
+        row.appendChild(text);
         row.appendChild(button);
         list.appendChild(row);
     }
 }
 
 /**
- * Wire up the page once it has loaded.
+ * Wire the Show all and End all buttons.
  */
-function init() {
-    // Version in the main area.
+function wireGroupButtons() {
+    document.getElementById("show-all").addEventListener("click", () => {
+        window.outputsApi.showAll().catch((err) => reportError("Could not show all outputs.", err));
+    });
+    document.getElementById("end-all").addEventListener("click", () => {
+        window.outputsApi.endAll().catch((err) => reportError("Could not end all outputs.", err));
+    });
+}
+
+// ---------- 4. Bottom panel tabs ----------
+
+/**
+ * Wire the Lyrics / Scriptures tabs. Clicking a tab shows its content and
+ * highlights it.
+ */
+function wireTabs() {
+    for (const tab of document.querySelectorAll(".tab")) {
+        tab.addEventListener("click", () => {
+            for (const other of document.querySelectorAll(".tab")) {
+                other.classList.toggle("active", other === tab);
+            }
+            const name = tab.dataset.tab;
+            document.getElementById("tab-lyrics").hidden = name !== "lyrics";
+            document.getElementById("tab-scriptures").hidden = name !== "scriptures";
+        });
+    }
+}
+
+// ---------- 5. Settings menu ----------
+
+/**
+ * Open the full-screen settings menu.
+ */
+function openSettings() {
+    document.getElementById("settings-overlay").hidden = false;
+    renderSettingsSection();
+}
+
+/**
+ * Close the settings menu and go back to the control window.
+ */
+function closeSettings() {
+    document.getElementById("settings-overlay").hidden = true;
+}
+
+/**
+ * Draw the active settings section on the left.
+ */
+function renderSettingsSection() {
+    const content = document.getElementById("settings-content");
+    content.textContent = "";
+
+    for (const button of document.querySelectorAll(".section-button")) {
+        button.classList.toggle("active", button.dataset.section === activeSection);
+    }
+
+    const section = document.createElement("div");
+    section.className = "settings-section";
+    content.appendChild(section);
+
+    if (activeSection === "general") {
+        renderGeneralSettings(section);
+    } else if (activeSection === "outputs") {
+        renderOutputSettings(section);
+    }
+}
+
+/**
+ * General section: the theme choice.
+ * @param {HTMLElement} section  Container to fill.
+ */
+function renderGeneralSettings(section) {
+    const heading = document.createElement("h3");
+    heading.textContent = "General";
+    section.appendChild(heading);
+
+    const row = document.createElement("div");
+    row.className = "setting-row";
+
+    const label = document.createElement("label");
+    label.textContent = "Theme";
+
+    const select = document.createElement("select");
+    for (const [value, text] of [["dark", "Dark"], ["light", "Light"]]) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = text;
+        select.appendChild(option);
+    }
+    select.value = settings.theme || "dark";
+    select.addEventListener("change", () => {
+        window.settingsApi.update({ theme: select.value })
+            .catch((err) => reportError("Could not save the theme.", err));
+    });
+
+    row.appendChild(label);
+    row.appendChild(select);
+    section.appendChild(row);
+}
+
+/**
+ * Outputs settings section: rename, remove, and add outputs.
+ * @param {HTMLElement} section  Container to fill.
+ */
+function renderOutputSettings(section) {
+    const heading = document.createElement("h3");
+    heading.textContent = "Outputs settings";
+    section.appendChild(heading);
+
+    for (const output of outputStatuses) {
+        const row = document.createElement("div");
+        row.className = "setting-row";
+
+        // Renaming: save when the field loses focus or Enter is pressed.
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.value = output.name;
+        nameInput.maxLength = 40;
+        nameInput.addEventListener("change", () => {
+            window.outputsApi.renameOutput(output.id, nameInput.value)
+                .catch((err) => reportError("Could not rename this output.", err));
+        });
+
+        const removeButton = document.createElement("button");
+        removeButton.textContent = "Remove";
+        removeButton.className = "danger";
+        removeButton.addEventListener("click", () => {
+            const message = output.open
+                ? `Remove "${output.name}"? Its window will close.`
+                : `Remove "${output.name}"?`;
+            if (!confirm(message)) return;
+            window.outputsApi.removeOutput(output.id)
+                .catch((err) => reportError("Could not remove this output.", err));
+        });
+
+        row.appendChild(nameInput);
+        row.appendChild(removeButton);
+        section.appendChild(row);
+    }
+
+    // Add a new output.
+    const addRow = document.createElement("div");
+    addRow.className = "add-row";
+
+    const newName = document.createElement("input");
+    newName.type = "text";
+    newName.placeholder = "New output name";
+    newName.maxLength = 40;
+
+    const addButton = document.createElement("button");
+    addButton.textContent = "Add output";
+    addButton.addEventListener("click", () => {
+        window.outputsApi.addOutput(newName.value)
+            .then(() => { newName.value = ""; })
+            .catch((err) => reportError("Could not add the output.", err));
+    });
+
+    addRow.appendChild(newName);
+    addRow.appendChild(addButton);
+    section.appendChild(addRow);
+}
+
+/**
+ * Wire the settings menu: open/close buttons and its section list.
+ */
+function wireSettings() {
+    document.getElementById("settings-button").addEventListener("click", openSettings);
+    document.getElementById("settings-close").addEventListener("click", closeSettings);
+
+    for (const button of document.querySelectorAll(".section-button")) {
+        button.addEventListener("click", () => {
+            activeSection = button.dataset.section;
+            renderSettingsSection();
+        });
+    }
+
+    // Escape closes the settings menu, as most menus do.
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeSettings();
+    });
+}
+
+// ---------- 6. Start-up ----------
+
+/**
+ * Connect everything once the page has loaded: version, theme, outputs,
+ * settings, and the buttons.
+ */
+async function init() {
+    wireGroupButtons();
+    wireTabs();
+    wireSettings();
+
     window.appInfo.version().then((version) => {
         document.getElementById("version").textContent = `Version: ${version}`;
     });
 
-    // "Show all" opens every output that is closed.
-    document.getElementById("show-all").addEventListener("click", () => {
-        window.outputsApi.showAll().catch((err) => {
-            console.error("Could not show all outputs:", err);
-        });
+    // Settings first, so the theme is correct before anything is drawn.
+    settings = await window.settingsApi.get();
+    applyTheme(settings.theme);
+
+    // Redraw when the main process reports a change.
+    window.settingsApi.onChange((updated) => {
+        settings = updated;
+        applyTheme(settings.theme);
+        if (!document.getElementById("settings-overlay").hidden) renderSettingsSection();
+    });
+    window.outputsApi.onChange((statuses) => {
+        renderOutputs(statuses);
+        if (!document.getElementById("settings-overlay").hidden) renderSettingsSection();
     });
 
-    // Initial list, then a redraw every time an output opens or closes.
-    window.outputsApi.getOutputs().then(renderOutputs);
-    window.outputsApi.onChange(renderOutputs);
+    renderOutputs(await window.outputsApi.getOutputs());
 }
 
-init();
+init().catch((err) => reportError("The control window could not start.", err));

@@ -1,101 +1,71 @@
 <!--
-  index.html — the control window's page.
+  index.html — the control window's page. The look is in styles.css and the
+  behaviour in control.js, both in this folder.
 
-  Layout:
-    - Left: the main area (welcome text, and later the song and verse controls).
-    - Right: the Outputs panel. Each output has a "Start show" button, and
-      "Show all" at the top opens every output that is not open yet.
-
-  Behaviour lives in control.js in this folder.
+  Layout, top to bottom:
+    #top          Main area on the left (#stage), Outputs panel on the right (#outputs-panel).
+    #bottom-wrap  Bottom panel with Lyrics / Scriptures tabs. The Settings button
+                  (#settings-button) sits just above its right edge.
+    #settings-overlay  Full-screen settings, hidden until Settings is pressed.
 -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LoGShow</title>
-    <style>
-        /* Overall page: main area on the left, outputs panel on the right. */
-        body {
-            margin: 0;
-            font-family: system-ui, sans-serif;
-            display: flex;
-            height: 100vh;
-        }
-
-        /* Left area: takes all the space the outputs panel doesn't use. */
-        #main {
-            flex: 1;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Right panel: outputs list and the "Show all" button. */
-        #outputs-panel {
-            width: 280px;
-            border-left: 1px solid #ccc;
-            padding: 16px;
-            box-sizing: border-box;
-            overflow-y: auto;
-            background: #f7f7f7;
-        }
-
-        #outputs-panel h2 {
-            margin-top: 0;
-            font-size: 18px;
-        }
-
-        .output-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .output-status {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .output-status.open {
-            color: #1a7f37;
-            font-weight: bold;
-        }
-
-        button {
-            padding: 6px 12px;
-            cursor: pointer;
-        }
-
-        #show-all {
-            width: 100%;
-            margin-bottom: 12px;
-            padding: 8px;
-        }
-
-        #version {
-            margin-top: auto;
-            font-size: 12px;
-            color: #888;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
 
-    <div id="main">
-        <h1>Welcome to LoGShow!</h1>
-        <p id="version"></p>
+    <div id="app">
+
+        <div id="top">
+            <main id="stage">
+                <h1>Welcome to LoGShow!</h1>
+                <p id="version"></p>
+            </main>
+
+            <aside id="outputs-panel">
+                <h2>Outputs</h2>
+                <div class="group-buttons">
+                    <button id="show-all">Show all</button>
+                    <button id="end-all">End all</button>
+                </div>
+                <div id="output-list"></div>
+            </aside>
+        </div>
+
+        <div id="bottom-wrap">
+            <button id="settings-button" title="Open settings">Settings</button>
+
+            <section id="bottom-panel">
+                <div class="tabs">
+                    <button class="tab active" data-tab="lyrics">Lyrics</button>
+                    <button class="tab" data-tab="scriptures">Scriptures</button>
+                </div>
+                <div id="tab-lyrics" class="tab-content">Lyrics will appear here.</div>
+                <div id="tab-scriptures" class="tab-content" hidden>Scriptures will appear here.</div>
+            </section>
+        </div>
+
     </div>
 
-    <aside id="outputs-panel">
-        <h2>Outputs</h2>
-        <button id="show-all">Show all</button>
-        <div id="output-list"></div>
-    </aside>
+    <div id="settings-overlay" hidden>
+        <header id="settings-header">
+            <h2>Settings</h2>
+            <button id="settings-close">Close</button>
+        </header>
+        <div id="settings-body">
+            <div id="settings-content"></div>
+            <nav id="settings-nav">
+                <button class="section-button active" data-section="general">General</button>
+                <button class="section-button" data-section="outputs">Outputs settings</button>
+            </nav>
+        </div>
+    </div>
 
     <script src="control.js"></script>
 </body>

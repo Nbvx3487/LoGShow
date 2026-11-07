@@ -3,11 +3,23 @@
  *
  * It exposes a few safe functions on window.* so the page can talk to the
  * main process without getting access to Node or Electron itself:
- *   window.appInfo.version()        -> app version
- *   window.outputsApi.getOutputs()  -> list of outputs and whether they are open
- *   window.outputsApi.startOutput(id)
- *   window.outputsApi.showAll()
- *   window.outputsApi.onChange(fn)  -> call fn(statuses) whenever a window opens or closes
+ *
+ *   window.appInfo.version()
+ *   window.outputsApi.getOutputs()          -> [{ id, name, open }]
+ *   window.outputsApi.startOutput(id)       -> open an output window
+ *   window.outputsApi.endOutput(id)         -> close an output window
+ *   window.outputsApi.showAll()             -> open every closed output
+ *   window.outputsApi.endAll()              -> close every open output
+ *   window.outputsApi.addOutput(name)
+ *   window.outputsApi.renameOutput(id, name)
+ *   window.outputsApi.removeOutput(id)
+ *   window.outputsApi.onChange(fn)          -> fn(statuses) on any output change
+ *   window.settingsApi.get()                -> { theme, ... }
+ *   window.settingsApi.update(partial)
+ *   window.settingsApi.onChange(fn)         -> fn(settings) on any settings change
+ *
+ * Each function that changes something returns a promise with the new state.
+ * The onChange functions return a function that stops listening.
  *
  * Channel names must match src/shared/channels.js. They are repeated here
  * because Electron's sandbox does not let preload scripts load local files.
@@ -19,33 +31,49 @@ const { contextBridge, ipcRenderer } = require("electron");
 const CH = {
     GET_OUTPUTS: "outputs:get",
     START_OUTPUT: "outputs:start",
+    END_OUTPUT: "outputs:end",
     SHOW_ALL_OUTPUTS: "outputs:show-all",
+    END_ALL_OUTPUTS: "outputs:end-all",
+    ADD_OUTPUT: "outputs:add",
+    RENAME_OUTPUT: "outputs:rename",
+    REMOVE_OUTPUT: "outputs:remove",
     OUTPUTS_CHANGED: "outputs:changed",
+    GET_SETTINGS: "settings:get",
+    SET_SETTINGS: "settings:set",
+    SETTINGS_CHANGED: "settings:changed",
     GET_VERSION: "get-version",
 };
 
+/**
+ * Subscribe to a channel the main process broadcasts on.
+ * @param {string} channel
+ * @param {(payload: *) => void} fn
+ * @returns {() => void} Call to stop listening.
+ */
+function listen(channel, fn) {
+    const handler = (_event, payload) => fn(payload);
+    ipcRenderer.on(channel, handler);
+    return () => ipcRenderer.removeListener(channel, handler);
+}
+
 contextBridge.exposeInMainWorld("appInfo", {
-    /** Returns a promise with the app version string. */
     version: () => ipcRenderer.invoke(CH.GET_VERSION),
 });
 
 contextBridge.exposeInMainWorld("outputsApi", {
-    /** Returns a promise with [{ id, name, open }] for every output. */
     getOutputs: () => ipcRenderer.invoke(CH.GET_OUTPUTS),
-
-    /** Opens one output window. Returns a promise with the new status list. */
     startOutput: (id) => ipcRenderer.invoke(CH.START_OUTPUT, id),
-
-    /** Opens every output that is not open yet. Returns a promise with the new status list. */
+    endOutput: (id) => ipcRenderer.invoke(CH.END_OUTPUT, id),
     showAll: () => ipcRenderer.invoke(CH.SHOW_ALL_OUTPUTS),
+    endAll: () => ipcRenderer.invoke(CH.END_ALL_OUTPUTS),
+    addOutput: (name) => ipcRenderer.invoke(CH.ADD_OUTPUT, name),
+    renameOutput: (id, name) => ipcRenderer.invoke(CH.RENAME_OUTPUT, id, name),
+    removeOutput: (id) => ipcRenderer.invoke(CH.REMOVE_OUTPUT, id),
+    onChange: (fn) => listen(CH.OUTPUTS_CHANGED, fn),
+});
 
-    /**
-     * Calls fn(statuses) every time an output opens or closes.
-     * Returns a function that stops listening.
-     */
-    onChange: (fn) => {
-        const handler = (_event, statuses) => fn(statuses);
-        ipcRenderer.on(CH.OUTPUTS_CHANGED, handler);
-        return () => ipcRenderer.removeListener(CH.OUTPUTS_CHANGED, handler);
-    },
+contextBridge.exposeInMainWorld("settingsApi", {
+    get: () => ipcRenderer.invoke(CH.GET_SETTINGS),
+    update: (partial) => ipcRenderer.invoke(CH.SET_SETTINGS, partial),
+    onChange: (fn) => listen(CH.SETTINGS_CHANGED, fn),
 });
