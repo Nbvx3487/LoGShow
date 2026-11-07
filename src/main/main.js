@@ -1,52 +1,52 @@
 /**
  * main.js — entry point of the Electron main process.
  *
- * Starts the app, creates the control window, and connects the modules in
- * src/main/. Start reading the app here. Function-level details live in each
- * module. Logs are written to Desktop/LoGShow Logs.
+ * Starts the app and connects the modules in src/main/:
+ *   - windows/controlWindow.js  the control panel, opened on launch
+ *   - windows/outputManager.js  tracks the output windows (opened on demand)
+ *   - windows/outputWindow.js   builds one output window
+ *   - ipc/handlers.js           answers requests from the windows
+ *   - updater/updater.js        automatic updates
+ *   - shared/outputs.js         the list of outputs
+ *
+ * Logs are written to Desktop/LoGShow Logs.
  */
 
-const { app, BrowserWindow, ipcMain } = require("electron");
-const { autoUpdater } = require("electron-updater");
+const { app } = require("electron");
 const path = require("path");
 const os = require("os");
 const log = require("electron-log");
 
+const { createControlWindow } = require("./windows/controlWindow");
+const { createOutputManager } = require("./windows/outputManager");
+const { openOutputWindow } = require("./windows/outputWindow");
+const { registerIpcHandlers, broadcastOutputs } = require("./ipc/handlers");
+const { setupUpdater, checkForUpdates } = require("./updater/updater");
+const { DEFAULT_OUTPUTS } = require("../shared/outputs");
+
+// Log file location: Desktop/LoGShow Logs/<date-time>.log
 log.transports.file.resolvePathFn = () => {
     const date = new Date()
         .toISOString()
         .replace(/:/g, "-")
         .replace(/\..+/, "");
 
-    return path.join(
-        os.homedir(),
-        "Desktop",
-        "LoGShow Logs",
-        `${date}.log`
-    );
+    return path.join(os.homedir(), "Desktop", "LoGShow Logs", `${date}.log`);
 };
-autoUpdater.logger = log;
 
-function createWindow() {
-    const window = new BrowserWindow({
-        width: 800,
-        height: 600,
-        webPreferences: {
-            preload: path.join(__dirname, "..", "preload", "preload.js"),
-            contextIsolation: true,
-            nodeIntegration: false
-        }
-    });
+setupUpdater();
 
-    window.loadFile(path.join(__dirname, "..", "renderer", "control", "index.html"));
-}
-
-ipcMain.handle("get-version", () => {
-    return app.getVersion();
+// One manager for the life of the app. It opens output windows on request
+// and tells every window when their open/closed status changes.
+const outputManager = createOutputManager({
+    outputs: DEFAULT_OUTPUTS,
+    openWindow: openOutputWindow,
+    onChange: broadcastOutputs,
 });
 
 app.whenReady().then(() => {
-    createWindow();
+    registerIpcHandlers({ outputManager });
+    createControlWindow();
 
     log.info("================ STARTED ================");
     log.info("Version:", app.getVersion());
@@ -56,26 +56,10 @@ app.whenReady().then(() => {
     log.info("Electron:", process.versions.electron);
     log.info("Node:", process.versions.node);
 
-    autoUpdater.checkForUpdates();
+    checkForUpdates();
 });
 
-autoUpdater.on("checking-for-update", () => {
-    log.info("Checking for update...");
-});
-
-autoUpdater.on("update-available", () => {
-    log.info("Update found");
-});
-
-autoUpdater.on("update-not-available", () => {
-    log.info("Already latest version");
-});
-
-autoUpdater.on("update-downloaded", () => {
-    log.info("Update downloaded");
-    autoUpdater.quitAndInstall();
-});
-
-autoUpdater.on("error", (error) => {
-    log.error("Updater error:", error);
+// Standard Electron behaviour: quit when the last window closes (not on macOS).
+app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") app.quit();
 });

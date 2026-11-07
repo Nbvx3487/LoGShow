@@ -1,3 +1,4 @@
 # src/renderer/control — PC control panel
 
-The window you operate during a service: song list, next and previous, output selection. index.html is still the placeholder 'Welcome to LoGShow!' page.
+- `index.html` — the layout: main area on the left, Outputs panel on the right.
+- `control.js` — draws the Outputs panel and handles the buttons. Panel problems: look here, then open DevTools (View > Toggle Developer Tools) for errors.

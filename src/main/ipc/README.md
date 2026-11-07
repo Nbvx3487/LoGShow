@@ -1,3 +1,3 @@
 # src/main/ipc — message channels
 
-Defines the named channels that windows use to send requests to the main process, for example 'next verse'. Channel names are kept in one place so a typo is easy to find.
+`handlers.js` answers the requests windows send, by channel name from src/shared/channels.js. It also sends the output status to every window when it changes. A button that reports an error: find its channel here.

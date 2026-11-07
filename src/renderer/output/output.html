@@ -1,0 +1,38 @@
+<!--
+  output.html — one lyrics display window (one per output).
+
+  The page reads its output id and name from the URL, which the main process
+  sets when it opens the window (see src/main/windows/outputWindow.js).
+  Next step: it will draw the current verse from the state module.
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Output</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: #000;
+            color: #fff;
+            font-family: system-ui, sans-serif;
+        }
+
+        #screen {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="screen">Output</div>
+    <script src="output.js"></script>
+</body>
+
+</html>

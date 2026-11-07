@@ -1,3 +1,3 @@
 # src/renderer/output — lyrics display
 
-The window that shows lyrics on a projector or second screen. One copy opens for each output.
+One copy of this page opens per output. `output.html` is the layout, `output.js` reads the output name from the URL. Next step: this window will draw the current verse from the state module.
